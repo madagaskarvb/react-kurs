@@ -34,7 +34,7 @@ function RequestForm({ onAdd }: RequestFormProps) {
       <input
         id="title"
         type="text"
-        placeholder="Например: не работает проектор"
+        placeholder="Например: не работает интернет"
         value={title}
         onChange={(event) => setTitle(event.target.value)}
       />
@@ -54,9 +54,9 @@ function RequestForm({ onAdd }: RequestFormProps) {
         value={category}
         onChange={(event) => setCategory(event.target.value as Category)}
       >
-        <option>Компьютер</option>
-        <option>Проектор</option>
-        <option>Принтер</option>
+        <option>Электрика</option>
+        <option>Мебель</option>
+        <option>Сантехника</option>
         <option>Интернет</option>
       </select>
 
