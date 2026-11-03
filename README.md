@@ -37,7 +37,7 @@ react-kurs/
 ## Как запустить
 
 ```bash
-git clone https://github.com/<логин>/react-kurs.git
+git clone https://github.com/madagaskarvb/react-kurs.git
 cd react-kurs/zayavki
 npm install
 npm run dev
