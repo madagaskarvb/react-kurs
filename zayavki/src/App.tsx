@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Header from './components/Header'
 import RequestForm from './components/RequestForm'
 import RequestCard from './components/RequestCard'
@@ -17,6 +17,28 @@ function App() {
 
   const newCount = requests.filter((r) => r.status === 'Новая').length
   const visible = filter === 'Все' ? requests : requests.filter((r) => r.status === filter)
+
+  useEffect(() => {
+    document.title = `Новых: ${newCount} · Доска заявок`
+  }, [newCount])
+
+  useEffect(() => {
+    if (notice === '') {
+      return
+    }
+    const timer = setTimeout(() => setNotice(''), 5000)
+    return () => clearTimeout(timer)
+  }, [notice])
+
+  useEffect(() => {
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setFilter('Все')
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
 
   function update(list: RequestItem[]) {
     setRequests(list)
