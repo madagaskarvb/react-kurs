@@ -10,5 +10,13 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
 
+  pocketbase:
+    build: ./pocketbase
+    ports:
+      - "8090:8090"
+    volumes:
+      - pb_data:/pb/pb_data
+
 volumes:
   n8n_data:
+  pb_data:
