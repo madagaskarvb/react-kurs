@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import Header from './components/Header'
 import RequestForm from './components/RequestForm'
 import RequestCard from './components/RequestCard'
-import { nextStatus, type NewRequest, type RequestItem, type Status } from './requests'
-import { createRequest, deleteRequest, fetchRequests, updateStatus } from './api'
+import type { NewRequest, Status } from './requests'
+import { useRequests } from './useRequests'
 import { sendRequest } from './notify'
 
 type Filter = 'Все' | Status
@@ -11,38 +11,12 @@ type Filter = 'Все' | Status
 const FILTERS: Filter[] = ['Все', 'Новая', 'В работе', 'Готово']
 
 function App() {
-  const [requests, setRequests] = useState<RequestItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [attempt, setAttempt] = useState(0)
+  const { requests, loading, error, retry, add, next, remove } = useRequests()
   const [filter, setFilter] = useState<Filter>('Все')
   const [notice, setNotice] = useState('')
 
   const newCount = requests.filter((r) => r.status === 'Новая').length
   const visible = filter === 'Все' ? requests : requests.filter((r) => r.status === filter)
-
-  useEffect(() => {
-    let ignore = false
-    async function load() {
-      try {
-        const list = await fetchRequests()
-        if (!ignore) {
-          setRequests(list)
-        }
-      } catch (e) {
-        if (!ignore) {
-          setError((e as Error).message)
-        }
-      }
-      if (!ignore) {
-        setLoading(false)
-      }
-    }
-    load()
-    return () => {
-      ignore = true
-    }
-  }, [attempt])
 
   useEffect(() => {
     document.title = `Новых: ${newCount} · Доска заявок`
@@ -66,16 +40,9 @@ function App() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [])
 
-  function retry() {
-    setError('')
-    setLoading(true)
-    setAttempt(attempt + 1)
-  }
-
   async function handleNext(id: string, status: Status) {
     try {
-      const updated = await updateStatus(id, nextStatus(status))
-      setRequests((list) => list.map((r) => (r.id === id ? updated : r)))
+      await next(id, status)
     } catch (e) {
       setNotice((e as Error).message)
     }
@@ -83,8 +50,7 @@ function App() {
 
   async function handleAdd(data: NewRequest) {
     try {
-      const created = await createRequest(data)
-      setRequests((list) => [created, ...list])
+      const created = await add(data)
       setNotice('Заявка добавлена. Отправляем уведомление…')
       const sent = await sendRequest(created)
       if (sent) {
@@ -99,8 +65,7 @@ function App() {
 
   async function handleRemove(id: string) {
     try {
-      await deleteRequest(id)
-      setRequests((list) => list.filter((r) => r.id !== id))
+      await remove(id)
     } catch (e) {
       setNotice((e as Error).message)
     }
