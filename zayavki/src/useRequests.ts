@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createRequest, deleteRequest, fetchRequests, updateStatus } from './api'
-import { nextStatus, type NewRequest, type RequestItem, type Status } from './requests'
+import { nextStatus, upsertRequest, type NewRequest, type RequestItem, type Status } from './requests'
+import { subscribeRequests } from './realtime'
 
 export function useRequests() {
   const [requests, setRequests] = useState<RequestItem[]>([])
@@ -31,6 +32,16 @@ export function useRequests() {
     }
   }, [attempt])
 
+  useEffect(() => {
+    return subscribeRequests(({ action, record }) => {
+      if (action === 'delete') {
+        setRequests((list) => list.filter((r) => r.id !== record.id))
+      } else {
+        setRequests((list) => upsertRequest(list, record))
+      }
+    })
+  }, [])
+
   function retry() {
     setError('')
     setLoading(true)
@@ -39,13 +50,13 @@ export function useRequests() {
 
   async function add(data: NewRequest): Promise<RequestItem> {
     const created = await createRequest(data)
-    setRequests((list) => [created, ...list])
+    setRequests((list) => upsertRequest(list, created))
     return created
   }
 
   async function next(id: string, status: Status) {
     const updated = await updateStatus(id, nextStatus(status))
-    setRequests((list) => list.map((r) => (r.id === id ? updated : r)))
+    setRequests((list) => upsertRequest(list, updated))
   }
 
   async function remove(id: string) {

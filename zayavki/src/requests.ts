@@ -24,3 +24,10 @@ export function nextStatus(status: Status): Status {
   }
   return 'Готово'
 }
+
+export function upsertRequest(list: RequestItem[], item: RequestItem): RequestItem[] {
+  if (list.some((r) => r.id === item.id)) {
+    return list.map((r) => (r.id === item.id ? item : r))
+  }
+  return [item, ...list]
+}
