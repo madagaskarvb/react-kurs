@@ -1,113 +1,40 @@
-import { useEffect, useState } from 'react'
+import { Route, Routes } from 'react-router'
 import Header from './components/Header'
-import RequestForm from './components/RequestForm'
-import RequestCard from './components/RequestCard'
-import type { NewRequest, Status } from './requests'
-import { useRequests } from './useRequests'
-import { sendRequest } from './notify'
-
-type Filter = 'Все' | Status
-
-const FILTERS: Filter[] = ['Все', 'Новая', 'В работе', 'Готово']
+import BoardPage from './pages/BoardPage'
+import StatsPage from './pages/StatsPage'
+import RequestPage from './pages/RequestPage'
+import NotFoundPage from './pages/NotFoundPage'
+import { useBoard } from './board'
 
 function App() {
-  const { requests, loading, error, retry, add, next, remove } = useRequests()
-  const [filter, setFilter] = useState<Filter>('Все')
-  const [notice, setNotice] = useState('')
-
-  const newCount = requests.filter((r) => r.status === 'Новая').length
-  const visible = filter === 'Все' ? requests : requests.filter((r) => r.status === filter)
-
-  useEffect(() => {
-    document.title = `Новых: ${newCount} · Доска заявок`
-  }, [newCount])
-
-  useEffect(() => {
-    if (notice === '') {
-      return
-    }
-    const timer = setTimeout(() => setNotice(''), 5000)
-    return () => clearTimeout(timer)
-  }, [notice])
-
-  useEffect(() => {
-    function handleKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setFilter('Все')
-      }
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [])
-
-  async function handleNext(id: string, status: Status) {
-    try {
-      await next(id, status)
-    } catch (e) {
-      setNotice((e as Error).message)
-    }
-  }
-
-  async function handleAdd(data: NewRequest) {
-    try {
-      const created = await add(data)
-      setNotice('Заявка добавлена. Отправляем уведомление…')
-      const sent = await sendRequest(created)
-      if (sent) {
-        setNotice('Заявка добавлена, уведомление отправлено.')
-      } else {
-        setNotice('Заявка добавлена, но уведомление не отправлено: сервер автоматизации недоступен.')
-      }
-    } catch (e) {
-      setNotice((e as Error).message)
-    }
-  }
-
-  async function handleRemove(id: string) {
-    try {
-      await remove(id)
-    } catch (e) {
-      setNotice((e as Error).message)
-    }
-  }
+  const { requests, loading, error, retry, newCount, notice, handleAdd, handleNext, handleRemove } = useBoard()
 
   return (
     <>
       <Header newCount={newCount} />
-      <main className="board">
-        <RequestForm onAdd={handleAdd} />
-        <section className="list">
-          <h2>Заявки</h2>
-          {notice !== '' && <p className="notice">{notice}</p>}
-          <div className="filters">
-            {FILTERS.map((f) => (
-              <button key={f} className={f === filter ? 'active' : ''} onClick={() => setFilter(f)}>
-                {f}
-              </button>
-            ))}
-          </div>
-          {loading && <p className="empty">Загрузка заявок…</p>}
-          {error !== '' && (
-            <div className="load-error">
-              <p>{error}</p>
-              <button onClick={retry}>Повторить</button>
-            </div>
-          )}
-          {!loading && error === '' && visible.length === 0 && <p className="empty">Заявок с таким статусом нет</p>}
-          {visible.map((r) => (
-            <RequestCard
-              key={r.id}
-              title={r.title}
-              room={r.room}
-              category={r.category}
-              details={r.details}
-              status={r.status}
-              onNext={() => handleNext(r.id, r.status)}
-              onRemove={() => handleRemove(r.id)}
+      {notice !== '' && <p className="notice notice--page">{notice}</p>}
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <BoardPage
+              requests={requests}
+              loading={loading}
+              error={error}
+              onRetry={retry}
+              onAdd={handleAdd}
+              onNext={handleNext}
+              onRemove={handleRemove}
             />
-          ))}
-        </section>
-      </main>
+          }
+        />
+        <Route path="/stats" element={<StatsPage requests={requests} loading={loading} />} />
+        <Route
+          path="/requests/:id"
+          element={<RequestPage requests={requests} loading={loading} onNext={handleNext} onRemove={handleRemove} />}
+        />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
     </>
   )
 }
